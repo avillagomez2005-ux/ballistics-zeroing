@@ -74,6 +74,8 @@
   .counter{font-size:12px;color:var(--muted);float:right}
   .footer{text-align:center;color:var(--muted);font-size:11px;margin-top:20px}
   .unitbadge{font-size:10px;color:var(--accent2);font-weight:700}
+  .dirseg{margin-top:6px}
+  .dirseg button{padding:8px;font-size:13px}
   /* modal */
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;
     justify-content:center;z-index:100;padding:20px}
@@ -127,14 +129,22 @@
     <div class="row">
       <div>
         <label>Vertical miss <span class="unitbadge ub-lin">(cm)</span></label>
-        <input type="number" id="z_vert" placeholder="+ high / - low" inputmode="decimal">
+        <input type="number" id="z_vert" placeholder="amount" inputmode="decimal" min="0">
+        <div class="seg dirseg" id="z_vertdir">
+          <button type="button" data-v="high">High</button>
+          <button type="button" data-v="low" class="on">Low</button>
+        </div>
       </div>
       <div>
         <label>Horizontal miss <span class="unitbadge ub-lin">(cm)</span></label>
-        <input type="number" id="z_horz" placeholder="+ right / - left" inputmode="decimal">
+        <input type="number" id="z_horz" placeholder="amount" inputmode="decimal" min="0">
+        <div class="seg dirseg" id="z_horzdir">
+          <button type="button" data-v="right">Right</button>
+          <button type="button" data-v="left" class="on">Left</button>
+        </div>
       </div>
     </div>
-    <div class="hint">Vertical + = HIGH, − = LOW. Horizontal + = RIGHT, − = LEFT.</div>
+    <div class="hint">Enter the miss amount, then tap the direction it landed. (Leave a field blank to skip it.)</div>
     <button class="btn" onclick="calcZero()">Compute Correction</button>
     <div id="zeroResult"></div>
   </div>
@@ -423,11 +433,17 @@ function calcZero(){
   const out=document.getElementById('zeroResult');
   if(!r){ out.innerHTML='<div class="result danger">Select a rifle profile first (Rifles tab → create one).</div>'; return; }
   const distRaw=parseFloat(document.getElementById('z_dist').value);
-  const vertRaw=parseFloat(document.getElementById('z_vert').value);
-  const horzRaw=parseFloat(document.getElementById('z_horz').value);
+  let vertRaw=parseFloat(document.getElementById('z_vert').value);
+  let horzRaw=parseFloat(document.getElementById('z_horz').value);
   if(isNaN(distRaw)||distRaw<=0||(isNaN(vertRaw)&&isNaN(horzRaw))){
     out.innerHTML='<div class="result danger">Enter a valid distance and at least one miss value.</div>'; return;
   }
+  // Direction comes from the toggles (mobile number pads have no minus sign).
+  // Convention preserved: + = HIGH/RIGHT, - = LOW/LEFT.
+  const vertDir=document.querySelector('#z_vertdir button.on').dataset.v; // high|low
+  const horzDir=document.querySelector('#z_horzdir button.on').dataset.v; // right|left
+  if(!isNaN(vertRaw)) vertRaw=Math.abs(vertRaw)*(vertDir==='high'?1:-1);
+  if(!isNaN(horzRaw)) horzRaw=Math.abs(horzRaw)*(horzDir==='right'?1:-1);
   const distM=distToMeters(distRaw);
   const vert=isNaN(vertRaw)?NaN:linToCm(vertRaw);
   const horz=isNaN(horzRaw)?NaN:linToCm(horzRaw);
@@ -670,6 +686,10 @@ document.querySelectorAll('.dist-seg button').forEach(b=>{
 });
 document.querySelectorAll('.lin-seg button').forEach(b=>{
   b.onclick=()=>{ state.linUnit=b.dataset.v; refreshUnitsUI(); persist(); };
+});
+// Direction toggles (High/Low, Right/Left) — replace the missing minus key on mobile.
+document.querySelectorAll('.dirseg button').forEach(b=>{
+  b.onclick=()=>{ b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
 });
 
 /* ===================== INIT ===================== */

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>☀️ Omnissiah Ballistics &amp; Zeroing V2</title>
+<style>
+  :root{
+    /* Military palette */
+    --bg:#252B1F;        /* deep field green */
+    --panel:#2f3527;     /* olive panel */
+    --panel2:#3F3B2E;    /* dark khaki */
+    --border:#5B533F;    /* field brown */
+    --txt:#E8E4D6;       /* parchment */
+    --muted:#A4895C;     /* tan/brass */
+    --accent:#A4895C;    /* brass */
+    --accent2:#C9A86A;   /* light brass highlight */
+    --good:#7A8B4F;      /* od green */
+    --bad:#9E5A3A;       /* rust red */
+    --blue:#6E7F5B;      /* muted sage (for left) */
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);color:var(--txt);font-size:15px;line-height:1.4;padding-bottom:40px}
+  header{background:linear-gradient(135deg,#2f3527,#1c2016);padding:16px;text-align:center;
+    border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:10}
+  header h1{margin:0;font-size:18px;letter-spacing:1px;text-transform:uppercase}
+  header .sub{color:var(--muted);font-size:12px;margin-top:2px;letter-spacing:.5px}
+  .tabs{display:flex;background:var(--panel);border-bottom:1px solid var(--border);
+    position:sticky;top:62px;z-index:9}
+  .tab{flex:1;padding:12px 4px;text-align:center;cursor:pointer;color:var(--muted);
+    font-size:13px;font-weight:600;border-bottom:2px solid transparent;letter-spacing:.3px}
+  .tab.active{color:var(--accent2);border-bottom-color:var(--accent);background:var(--panel2)}
+  .wrap{max-width:680px;margin:0 auto;padding:14px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    padding:14px;margin-bottom:14px}
+  .card h2{margin:0 0 10px;font-size:14px;color:var(--accent2);text-transform:uppercase;
+    letter-spacing:1px}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px;letter-spacing:.3px}
+  input,select{width:100%;padding:10px;background:var(--panel2);border:1px solid var(--border);
+    border-radius:6px;color:var(--txt);font-size:15px}
+  input:focus,select:focus{outline:none;border-color:var(--accent2)}
+  input::placeholder{color:#8a8068}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  .seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .seg button{flex:1;padding:10px;background:var(--panel2);border:none;color:var(--muted);
+    font-size:14px;font-weight:600;cursor:pointer}
+  .seg button.on{background:var(--accent);color:#252B1F}
+  .btn{width:100%;padding:13px;background:var(--accent);color:#252B1F;border:none;
+    border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px;
+    letter-spacing:.5px;text-transform:uppercase}
+  .btn:active{transform:scale(.99)}
+  .btn.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent2)}
+  .result{background:var(--panel2);border-left:3px solid var(--accent);border-radius:6px;
+    padding:12px;margin-top:12px;font-size:14px}
+  .big{font-size:26px;font-weight:800;color:var(--accent2)}
+  .dir{font-weight:700}
+  .up{color:var(--good)}.down{color:var(--bad)}.left{color:var(--blue)}.right{color:var(--accent2)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{padding:7px 4px;text-align:center;border-bottom:1px solid var(--border)}
+  th{color:var(--accent2);font-size:11px;text-transform:uppercase}
+  td.zero{color:var(--accent2);font-weight:700}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--border);
+    border-radius:4px;padding:3px 10px;font-size:11px;color:var(--muted);margin:2px;cursor:pointer}
+  .pill:active{background:var(--border)}
+  .danger{color:var(--bad)}
+  .ok{color:var(--good);font-weight:700}
+  .msg{padding:10px;border-radius:6px;margin-top:10px;font-size:13px}
+  .msg.success{background:rgba(122,139,79,.18);border:1px solid var(--good)}
+  .msg.error{background:rgba(158,90,58,.18);border:1px solid var(--bad)}
+  .savedlist div{padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;
+    display:flex;justify-content:space-between;align-items:center;font-size:13px}
+  .savedlist button{width:auto;padding:6px 10px;font-size:12px;margin:0 0 0 6px}
+  .footer{text-align:center;color:var(--muted);font-size:11px;margin-top:20px}
+  .unitbadge{font-size:10px;color:var(--accent2);font-weight:700}
+  details{margin-top:10px;border:1px solid var(--border);border-radius:6px;padding:8px 10px;background:var(--panel2)}
+  summary{cursor:pointer;color:var(--accent2);font-size:13px;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>☀️ Ballistics &amp; Zeroing</h1>
+  <div class="sub">V2 &mdash; Forged by Omnissiah &mdash; Operates Offline</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="zero">Zero</div>
+  <div class="tab" data-tab="traj">Trajectory</div>
+  <div class="tab" data-tab="rifles">Rifles</div>
+  <div class="tab" data-tab="ammo">Cartridges</div>
+</div>
+
+<div class="wrap">
+
+<!-- ============ SETUP (shared) ============ -->
+<div class="card">
+  <h2>Setup</h2>
+  <label>Active Rifle / Load</label>
+  <select id="rifleSel"></select>
+  <div class="row" style="margin-top:8px">
+    <div>
+      <label>Distance Units</label>
+      <div class="seg" id="distUnit">
+        <button data-v="m" class="on">Meters</button>
+        <button data-v="yd">Yards</button>
+      </div>
+    </div>
+    <div>
+      <label>Linear Units (drop/offset)</label>
+      <div class="seg" id="linUnit">
+        <button data-v="cm" class="on">cm</button>
+        <button data-v="in">inches</button>
+      </div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <div>
+      <label>Adjustment</label>
+      <div class="seg" id="adjUnit">
+        <button data-v="mil" class="on">MIL</button>
+        <button data-v="moa">MOA</button>
+      </div>
+    </div>
+    <div>
+      <label>Click Value</label>
+      <select id="clickVal"></select>
+    </div>
+  </div>
+  <div class="hint" id="clickHint"></div>
+</div>
+
+<!-- ============ ZERO TAB ============ -->
+<div id="tab-zero">
+  <div class="card">
+    <h2>Sight-In Correction</h2>
+    <p class="hint">Enter where your group landed relative to point of aim. The tool returns exact turret corrections.</p>
+    <label>Target Distance <span class="unitbadge" id="ub_zdist">(m)</span></label>
+    <input type="number" id="z_dist" value="100" inputmode="decimal">
+    <div class="row">
+      <div>
+        <label>Vertical miss <span class="unitbadge" id="ub_zvert">(cm)</span></label>
+        <input type="number" id="z_vert" placeholder="+ high / - low" inputmode="decimal">
+      </div>
+      <div>
+        <label>Horizontal miss <span class="unitbadge" id="ub_zhorz">(cm)</span></label>
+        <input type="number" id="z_horz" placeholder="+ right / - left" inputmode="decimal">
+      </div>
+    </div>
+    <div class="hint">Vertical + = HIGH, − = LOW. Horizontal + = RIGHT, − = LEFT.</div>
+    <button class="btn" onclick="calcZero()">Compute Correction</button>
+    <div id="zeroResult"></div>
+  </div>
+</div>
+
+<!-- ============ TRAJECTORY TAB ============ -->
+<div id="tab-traj" style="display:none">
+  <div class="card">
+    <h2>Trajectory Solver</h2>
+    <div class="row">
+      <div>
+        <label>Muzzle Velocity (fps)</label>
+        <input type="number" id="t_mv" inputmode="decimal">
+      </div>
+      <div>
+        <label>Ballistic Coeff. (G1)</label>
+        <input type="number" id="t_bc" step="0.001" inputmode="decimal">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Zero Range <span class="unitbadge" id="ub_tzero">(m)</span></label>
+        <input type="number" id="t_zero" value="100" inputmode="decimal">
+      </div>
+      <div>
+        <label>Sight Height <span class="unitbadge" id="ub_tsh">(cm)</span></label>
+        <input type="number" id="t_sh" value="4.5" step="0.1" inputmode="decimal">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Max Range <span class="unitbadge" id="ub_tmax">(m)</span></label>
+        <input type="number" id="t_max" value="600" inputmode="decimal">
+      </div>
+      <div>
+        <label>Step <span class="unitbadge" id="ub_tstep">(m)</span></label>
+        <input type="number" id="t_step" value="50" inputmode="decimal">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Wind Speed (mph)</label>
+        <input type="number" id="t_wind" value="10" inputmode="decimal">
+      </div>
+      <div>
+        <label>Wind Angle</label>
+        <select id="t_windclock">
+          <option value="3">3 o'clock (full L→R)</option>
+          <option value="9">9 o'clock (full R→L)</option>
+          <option value="1.5">1:30 / 4:30 (half)</option>
+          <option value="12">12 (headwind, none)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" onclick="calcTraj()">Generate Drop Chart</button>
+    <div id="trajResult"></div>
+  </div>
+</div>
+
+<!-- ============ RIFLES TAB ============ -->
+<div id="tab-rifles" style="display:none">
+  <div class="card">
+    <h2>Add / Edit Rifle Load</h2>
+    <label>Profile Name</label>
+    <input id="r_name" placeholder="e.g. My Rem 700 .308 168gr">
+    <div class="row">
+      <div>
+        <label>Brand / Make</label>
+        <input id="r_brand" placeholder="Remington, Tikka, Savage…">
+      </div>
+      <div>
+        <label>Cartridge</label>
+        <select id="r_cart"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Bullet (gr)</label>
+        <input id="r_grain" type="number" inputmode="decimal">
+      </div>
+      <div>
+        <label>Muzzle Vel (fps)</label>
+        <input id="r_mv" type="number" inputmode="decimal">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>G1 BC</label>
+        <input id="r_bc" type="number" step="0.001" inputmode="decimal">
+      </div>
+      <div>
+        <label>Scope Adj.</label>
+        <select id="r_adj"><option value="mil">MIL (0.1)</option><option value="moa">MOA (0.25)</option></select>
+      </div>
+    </div>
+    <button class="btn" onclick="saveRifle()">Save Rifle</button>
+    <button class="btn ghost" onclick="newRifle()">Clear / New</button>
+  </div>
+  <div class="card">
+    <h2>Your Saved Rifles</h2>
+    <div class="savedlist" id="savedList"></div>
+    <div class="hint">Reference loads marked 📚. Your custom loads save to this device.</div>
+  </div>
+</div>
+
+<!-- ============ CARTRIDGES TAB ============ -->
+<div id="tab-ammo" style="display:none">
+  <div class="card">
+    <h2>Cartridge Lookup</h2>
+    <p class="hint">Type a cartridge name. The system searches its database; if found it auto-loads verified ballistics. If not, add it as a custom cartridge below.</p>
+    <label>Search Cartridge</label>
+    <input id="searchCart" placeholder="e.g. .22 LR, 6.5 Creedmoor, .300 Win Mag" autocomplete="off">
+    <button class="btn" onclick="lookupCart()">Search Database</button>
+    <div id="searchMsg"></div>
+  </div>
+  <div class="card">
+    <h2>Add Custom Cartridge</h2>
+    <p class="hint">Not in the database? Input verified ballistics yourself and save it permanently.</p>
+    <label>Cartridge Name</label>
+    <input id="cc_name" placeholder="e.g. .257 Weatherby Mag">
+    <div class="row">
+      <div><label>Bullet (gr)</label><input id="cc_grain" type="number" inputmode="decimal"></div>
+      <div><label>Muzzle Vel (fps)</label><input id="cc_mv" type="number" inputmode="decimal"></div>
+    </div>
+    <label>G1 Ballistic Coefficient</label>
+    <input id="cc_bc" type="number" step="0.001" inputmode="decimal">
+    <button class="btn" onclick="saveCustomCart()">Save Custom Cartridge</button>
+    <div id="ccMsg"></div>
+  </div>
+  <div class="card">
+    <h2>Cartridge Reference Library</h2>
+    <p class="hint">Tap any cartridge to load it into the rifle builder.</p>
+    <div id="cartLib"></div>
+  </div>
+</div>
+
+<div class="footer">☀️ Omnissiah Ballistics V2 &mdash; G1 drag model. Always confirm zero on paper.</div>
+</div>
+
+<script>
+/* ===================== CARTRIDGE REFERENCE LIBRARY (V2) =====================
+   Published representative factory-load values: G1 BC + typical muzzle velocity. */
+const BUILTIN_CARTRIDGES = [
+  {name:".22 LR",             grain:40,  mv:1080, bc:0.138},
+  {name:".22 LR (HV 36gr)",   grain:36,  mv:1280, bc:0.125},
+  {name:".22 Win Mag (WMR)",  grain:40,  mv:1910, bc:0.135},
+  {name:".17 HMR",            grain:17,  mv:2550, bc:0.125},
+  {name:".223 Remington",     grain:55,  mv:3240, bc:0.243},
+  {name:".223 Rem (77gr)",    grain:77,  mv:2750, bc:0.372},
+  {name:".5.56 NATO (62gr)",  grain:62,  mv:3100, bc:0.307},
+  {name:".22-250 Remington",  grain:55,  mv:3680, bc:0.243},
+  {name:".224 Valkyrie",      grain:90,  mv:2700, bc:0.563},
+  {name:".243 Winchester",    grain:95,  mv:3100, bc:0.365},
+  {name:"6mm Creedmoor",      grain:108, mv:3000, bc:0.536},
+  {name:"6.5 Creedmoor",      grain:140, mv:2710, bc:0.610},
+  {name:"6.5 PRC",            grain:147, mv:2910, bc:0.697},
+  {name:".260 Remington",     grain:140, mv:2750, bc:0.595},
+  {name:".270 Winchester",    grain:130, mv:3060, bc:0.435},
+  {name:"6.8 Western",        grain:165, mv:2970, bc:0.620},
+  {name:"7mm-08 Remington",   grain:140, mv:2860, bc:0.485},
+  {name:"7mm Rem Magnum",     grain:160, mv:2950, bc:0.531},
+  {name:".280 Ackley Imp.",   grain:150, mv:2950, bc:0.530},
+  {name:".308 Winchester",    grain:168, mv:2650, bc:0.462},
+  {name:".308 Win (175gr)",   grain:175, mv:2600, bc:0.505},
+  {name:".30-06 Springfield", grain:165, mv:2800, bc:0.435},
+  {name:".30-30 Winchester",  grain:150, mv:2390, bc:0.218},
+  {name:".300 Win Magnum",    grain:190, mv:2900, bc:0.533},
+  {name:".300 PRC",           grain:212, mv:2860, bc:0.673},
+  {name:".300 Blackout",      grain:125, mv:2200, bc:0.345},
+  {name:".300 Blackout subs", grain:220, mv:1000, bc:0.610},
+  {name:"7.62x39mm",          grain:123, mv:2350, bc:0.295},
+  {name:".338 Lapua Magnum",  grain:285, mv:2745, bc:0.768},
+  {name:".338 Win Magnum",    grain:225, mv:2800, bc:0.485},
+  {name:".350 Legend",        grain:170, mv:2200, bc:0.230},
+  {name:".45-70 Govt",        grain:300, mv:1880, bc:0.225},
+  {name:".50 BMG",            grain:750, mv:2820, bc:1.050}
+];
+
+/* ===================== STATE ===================== */
+let state = { distUnit:'m', linUnit:'cm', adjUnit:'mil', click:0.1, activeRifle:0 };
+let rifles = [];
+let customCarts = [];
+
+function CARTRIDGES(){ return BUILTIN_CARTRIDGES.concat(customCarts); }
+
+/* ===================== PERSISTENCE ===================== */
+function load(){
+  try{ rifles = JSON.parse(localStorage.getItem('omni2_rifles')||'[]'); }catch(e){ rifles=[]; }
+  try{ customCarts = JSON.parse(localStorage.getItem('omni2_carts')||'[]'); }catch(e){ customCarts=[]; }
+  const s = localStorage.getItem('omni2_state');
+  if(s){ try{ Object.assign(state, JSON.parse(s)); }catch(e){} }
+}
+function persist(){
+  localStorage.setItem('omni2_rifles', JSON.stringify(rifles));
+  localStorage.setItem('omni2_carts', JSON.stringify(customCarts));
+  localStorage.setItem('omni2_state', JSON.stringify(state));
+}
+
+/* ===================== UNIT HELPERS ===================== */
+const M_PER_YD=0.9144, CM_PER_IN=2.54;
+function distToMeters(d){ return state.distUnit==='yd' ? d*M_PER_YD : d; }
+function distLabel(){ return state.distUnit==='yd' ? 'yd' : 'm'; }
+function linLabel(){ return state.linUnit; }
+// convert a user-entered linear value (cm or in) into cm for math
+function linToCm(v){ return state.linUnit==='in' ? v*CM_PER_IN : v; }
+// convert a cm value (from math) into display unit
+function cmToLin(cm){ return state.linUnit==='in' ? cm/CM_PER_IN : cm; }
+
+function cmToAngle(cm, distM){
+  if(distM<=0) return 0;
+  if(state.adjUnit==='mil'){ return cm / (distM*0.1); }
+  else { return cm / (distM*0.02908); }
+}
+function angleUnitName(){ return state.adjUnit==='mil' ? 'MIL' : 'MOA'; }
+
+/* ===================== CLICK OPTIONS ===================== */
+const CLICKS = {
+  mil:[{v:0.1,t:'0.1 MIL (common)'},{v:0.05,t:'0.05 MIL'},{v:0.2,t:'0.2 MIL'}],
+  moa:[{v:0.25,t:'1/4 MOA (common)'},{v:0.125,t:'1/8 MOA'},{v:0.5,t:'1/2 MOA'},{v:1,t:'1 MOA'}]
+};
+function rebuildClicks(){
+  const sel=document.getElementById('clickVal'); sel.innerHTML='';
+  CLICKS[state.adjUnit].forEach(c=>{
+    const o=document.createElement('option'); o.value=c.v; o.textContent=c.t; sel.appendChild(o);
+  });
+  const match=CLICKS[state.adjUnit].find(c=>c.v===state.click);
+  state.click = match? state.click : CLICKS[state.adjUnit][0].v;
+  sel.value=state.click; updateClickHint();
+}
+function updateClickHint(){
+  const distM=100;
+  const oneClickCm = state.adjUnit==='mil' ? state.click*distM*0.1 : state.click*distM*0.02908;
+  const disp=cmToLin(oneClickCm);
+  document.getElementById('clickHint').textContent =
+    `1 click = ${state.click} ${angleUnitName()} ≈ ${disp.toFixed(state.linUnit==='in'?3:2)} ${linLabel()} at 100 m`;
+}
+
+/* ===================== UNIT BADGE REFRESH ===================== */
+function refreshBadges(){
+  document.getElementById('ub_zdist').textContent='('+distLabel()+')';
+  document.getElementById('ub_tzero').textContent='('+distLabel()+')';
+  document.getElementById('ub_tmax').textContent='('+distLabel()+')';
+  document.getElementById('ub_tstep').textContent='('+distLabel()+')';
+  document.getElementById('ub_zvert').textContent='('+linLabel()+')';
+  document.getElementById('ub_zhorz').textContent='('+linLabel()+')';
+  document.getElementById('ub_tsh').textContent='('+linLabel()+')';
+}
+
+/* ===================== ZERO CALC ===================== */
+function calcZero(){
+  const distRaw=parseFloat(document.getElementById('z_dist').value);
+  const vertRaw=parseFloat(document.getElementById('z_vert').value);
+  const horzRaw=parseFloat(document.getElementById('z_horz').value);
+  const out=document.getElementById('zeroResult');
+  if(isNaN(distRaw)||distRaw<=0||(isNaN(vertRaw)&&isNaN(horzRaw))){
+    out.innerHTML='<div class="result danger">Enter a valid distance and at least one miss value.</div>';
+    return;
+  }
+  const distM=distToMeters(distRaw);
+  const vert = isNaN(vertRaw)?NaN:linToCm(vertRaw);
+  const horz = isNaN(horzRaw)?NaN:linToCm(horzRaw);
+  let html='<div class="result">';
+  function block(missCm, axis, rawVal){
+    if(isNaN(missCm)||missCm===0) return '';
+    const ang=cmToAngle(Math.abs(missCm), distM);
+    const clicks=Math.round(ang/state.click);
+    let dir;
+    if(axis==='v'){ dir = missCm>0 ? '<span class="dir down">DOWN</span>' : '<span class="dir up">UP</span>'; }
+    else { dir = missCm>0 ? '<span class="dir left">LEFT</span>' : '<span class="dir right">RIGHT</span>'; }
+    const word = axis==='v' ? (missCm>0?'HIGH':'LOW') : (missCm>0?'RIGHT':'LEFT');
+    return `<div style="margin-bottom:10px">
+      <div class="hint">${axis==='v'?'Elevation':'Windage'} — group ${word} ${Math.abs(rawVal)} ${linLabel()}</div>
+      Dial ${dir} <span class="big">${clicks}</span> clicks
+      <div class="hint">= ${ang.toFixed(2)} ${angleUnitName()} (${(clicks*state.click).toFixed(3)} ${angleUnitName()} actual)</div>
+    </div>`;
+  }
+  html+=block(vert,'v',vertRaw);
+  html+=block(horz,'h',horzRaw);
+  html+=`<div class="hint">At ${distRaw} ${distLabel()} · ${state.click} ${angleUnitName()}/click</div></div>`;
+  out.innerHTML=html;
+}
+
+/* ===================== TRAJECTORY SOLVER (G1 drag) ===================== */
+const SPEEDSOUND=1116.45;
+function cdG1(v){
+  const m=v/SPEEDSOUND;
+  const tbl=[[0,0.2629],[0.5,0.2654],[0.7,0.2633],[0.85,0.2598],[0.9,0.2618],
+    [0.95,0.3157],[1.0,0.4244],[1.05,0.4623],[1.1,0.4778],[1.2,0.4753],
+    [1.3,0.4698],[1.5,0.4419],[1.8,0.3994],[2.0,0.3743],[2.5,0.3308],[3.0,0.2999]];
+  if(m<=tbl[0][0])return tbl[0][1];
+  for(let i=1;i<tbl.length;i++){
+    if(m<=tbl[i][0]){const [m0,c0]=tbl[i-1],[m1,c1]=tbl[i];return c0+(c1-c0)*(m-m0)/(m1-m0);}
+  }
+  return tbl[tbl.length-1][1];
+}
+function solveTrajectory(mv,bc,zeroM,shCm,maxM,stepM,windMph,windFactor){
+  const sh_ft=(shCm/100)/0.3048, g=32.174, k=0.00068418;
+  const zeroFt=zeroM/0.3048;
+  function flight(angle,stopFt,sample){
+    let X=0,Y=-sh_ft,Vx=Math.cos(angle)*mv,Vy=Math.sin(angle)*mv,T=0;
+    const dt=0.0005;const out=[];let si=0;
+    while(X<stopFt&&T<12){
+      const sp=Math.sqrt(Vx*Vx+Vy*Vy);const cd=cdG1(sp);const dragA=k*cd*sp*sp/bc;
+      const ax=-dragA*(Vx/sp),ay=-g-dragA*(Vy/sp);
+      Vx+=ax*dt;Vy+=ay*dt;X+=Vx*dt;Y+=Vy*dt;T+=dt;
+      if(sample&&si<sample.length&&X>=sample[si]){out.push({xft:sample[si],yft:Y,vfps:sp,t:T});si++;}
+    }
+    return {samples:out};
+  }
+  let lo=-0.02,hi=0.06;
+  for(let i=0;i<42;i++){const mid=(lo+hi)/2;const r=flight(mid,zeroFt+1,[zeroFt]);
+    const yz=r.samples.length?r.samples[0].yft:-999;if(yz>0)hi=mid;else lo=mid;}
+  const angle=(lo+hi)/2;
+  const samplesFt=[];for(let d=0;d<=maxM;d+=stepM)samplesFt.push(d/0.3048);
+  const res=flight(angle,maxM/0.3048+1,samplesFt);
+  return res.samples.map((s,i)=>{
+    const distM=Math.round(samplesFt[i]*0.3048);
+    const dropCm=s.yft*30.48;
+    const angDrop = state.adjUnit==='mil' ? (-dropCm)/(distM*0.1||1) : (-dropCm)/(distM*0.02908||1);
+    const tof=s.t; const noWindTof=(samplesFt[i]/mv); const lag=tof-noWindTof;
+    const windFps=windMph*1.4667*windFactor; const driftCm=windFps*lag*30.48;
+    const angWind = state.adjUnit==='mil' ? (driftCm)/(distM*0.1||1) : (driftCm)/(distM*0.02908||1);
+    return {distM,dropCm,angDrop,vfps:s.vfps,driftCm,angWind};
+  });
+}
+function calcTraj(){
+  const mv=parseFloat(document.getElementById('t_mv').value);
+  const bc=parseFloat(document.getElementById('t_bc').value);
+  const zeroRaw=parseFloat(document.getElementById('t_zero').value);
+  const shRaw=parseFloat(document.getElementById('t_sh').value);
+  const maxRaw=parseFloat(document.getElementById('t_max').value);
+  const stepRaw=parseFloat(document.getElementById('t_step').value);
+  const wind=parseFloat(document.getElementById('t_wind').value)||0;
+  const wclock=parseFloat(document.getElementById('t_windclock').value);
+  const out=document.getElementById('trajResult');
+  if(isNaN(mv)||isNaN(bc)||isNaN(zeroRaw)||isNaN(maxRaw)){
+    out.innerHTML='<div class="result danger">Fill in muzzle velocity, BC, zero, and max range. Select a rifle to auto-fill.</div>';
+    return;
+  }
+  const shCm = linToCm(isNaN(shRaw)?(state.linUnit==='in'?1.77:4.5):shRaw);
+  const windFactor = wclock===12?0 : wclock===1.5?0.5 : 1;
+  const rows=solveTrajectory(mv,bc,distToMeters(zeroRaw),shCm,distToMeters(maxRaw),distToMeters(stepRaw),wind,windFactor);
+  let html='<div class="result"><table><tr><th>Range<br>('+distLabel()+')</th><th>Drop<br>('+linLabel()+')</th><th>Elev<br>('+angleUnitName()+')</th><th>Vel<br>(fps)</th><th>Wind<br>('+angleUnitName()+')</th></tr>';
+  rows.forEach(r=>{
+    const dispDist = state.distUnit==='yd' ? Math.round(r.distM/M_PER_YD) : r.distM;
+    const isZero=Math.abs(r.dropCm)<0.5;
+    const dropDisp=cmToLin(r.dropCm);
+    html+=`<tr>
+      <td class="${isZero?'zero':''}">${dispDist}</td>
+      <td>${dropDisp>0.05?'+':''}${dropDisp.toFixed(1)}</td>
+      <td>${r.angDrop>=0?'U ':'D '}${Math.abs(r.angDrop).toFixed(2)}</td>
+      <td>${Math.round(r.vfps)}</td>
+      <td>${r.angWind>=0?'R ':'L '}${Math.abs(r.angWind).toFixed(2)}</td>
+    </tr>`;
+  });
+  html+='</table><div class="hint">Drop − = below sight line. Elev = dial UP (U) to hit. Wind: '+document.getElementById('t_windclock').selectedOptions[0].text+'.</div></div>';
+  out.innerHTML=html;
+}
+
+/* ===================== CARTRIDGE LOOKUP ===================== */
+function normalize(s){ return s.toLowerCase().replace(/[\s\.\-_]/g,'').replace('remington','rem').replace('winchester','win').replace('magnum','mag').replace('government','govt'); }
+function lookupCart(){
+  const q=document.getElementById('searchCart').value.trim();
+  const msg=document.getElementById('searchMsg');
+  if(!q){ msg.innerHTML='<div class="msg error">Type a cartridge name to search.</div>'; return; }
+  const nq=normalize(q);
+  // exact-ish then partial match
+  let hit=CARTRIDGES().find(c=>normalize(c.name)===nq);
+  if(!hit) hit=CARTRIDGES().find(c=>normalize(c.name).includes(nq)||nq.includes(normalize(c.name)));
+  if(hit){
+    // load into rifle builder fields
+    document.getElementById('r_grain').value=hit.grain;
+    document.getElementById('r_mv').value=hit.mv;
+    document.getElementById('r_bc').value=hit.bc;
+    const idx=CARTRIDGES().findIndex(c=>c.name===hit.name);
+    if(idx>=0) document.getElementById('r_cart').value=idx;
+    msg.innerHTML=`<div class="msg success">✅ Found "<b>${hit.name}</b>" — verified ballistics loaded: ${hit.grain}gr · ${hit.mv} fps · G1 BC ${hit.bc}. <br>Loaded into the Rifle builder, ready to save as a profile.</div>`;
+  } else {
+    msg.innerHTML=`<div class="msg error">❌ "<b>${q}</b>" not found in the database. Try another spelling, or add it as a <b>Custom Cartridge</b> below with its ballistics data.</div>`;
+    document.getElementById('cc_name').value=q;
+  }
+}
+function saveCustomCart(){
+  const name=document.getElementById('cc_name').value.trim();
+  const grain=parseFloat(document.getElementById('cc_grain').value);
+  const mv=parseFloat(document.getElementById('cc_mv').value);
+  const bc=parseFloat(document.getElementById('cc_bc').value);
+  const msg=document.getElementById('ccMsg');
+  if(!name||isNaN(mv)||isNaN(bc)){
+    msg.innerHTML='<div class="msg error">Need at least a name, muzzle velocity, and G1 BC.</div>'; return;
+  }
+  if(CARTRIDGES().some(c=>normalize(c.name)===normalize(name))){
+    msg.innerHTML='<div class="msg error">A cartridge by that name already exists.</div>'; return;
+  }
+  customCarts.push({name, grain:isNaN(grain)?0:grain, mv, bc, custom:true});
+  persist(); rebuildCartSelects(); renderCartLib();
+  msg.innerHTML=`<div class="msg success">✅ Saved custom cartridge "<b>${name}</b>". It's now in the library and searchable.</div>`;
+  ['cc_name','cc_grain','cc_mv','cc_bc'].forEach(id=>document.getElementById(id).value='');
+}
+
+/* ===================== RIFLES UI ===================== */
+function rebuildCartSelects(){
+  const sel=document.getElementById('r_cart');
+  sel.innerHTML='<option value="">— pick reference —</option>';
+  CARTRIDGES().forEach((c,i)=>{
+    const o=document.createElement('option'); o.value=i;
+    o.textContent=c.name+(c.custom?' ★':''); sel.appendChild(o);
+  });
+  sel.onchange=function(){
+    const c=CARTRIDGES()[this.value]; if(!c)return;
+    document.getElementById('r_grain').value=c.grain;
+    document.getElementById('r_mv').value=c.mv;
+    document.getElementById('r_bc').value=c.bc;
+  };
+}
+function builtinRifles(){
+  return BUILTIN_CARTRIDGES.slice(0,14).map(c=>({
+    name:'📚 '+c.name+' ('+c.grain+'gr)', brand:'Reference', cart:c.name,
+    grain:c.grain, mv:c.mv, bc:c.bc, adj:'mil', builtin:true
+  }));
+}
+function allRifles(){ return builtinRifles().concat(rifles); }
+function rebuildRifleSel(){
+  const sel=document.getElementById('rifleSel'); sel.innerHTML='';
+  allRifles().forEach((r,i)=>{
+    const o=document.createElement('option'); o.value=i; o.textContent=r.name; sel.appendChild(o);
+  });
+  if(state.activeRifle==null) state.activeRifle=0;
+  sel.value=Math.min(state.activeRifle, allRifles().length-1);
+  sel.onchange=function(){ state.activeRifle=parseInt(this.value); applyActiveRifle(); persist(); };
+  applyActiveRifle();
+}
+function applyActiveRifle(){
+  const r=allRifles()[state.activeRifle]; if(!r)return;
+  document.getElementById('t_mv').value=r.mv;
+  document.getElementById('t_bc').value=r.bc;
+  if(r.adj && r.adj!==state.adjUnit){ setAdj(r.adj); }
+}
+function renderSaved(){
+  const el=document.getElementById('savedList');
+  if(rifles.length===0){ el.innerHTML='<div class="hint">No custom rifles yet. Add one above.</div>'; return; }
+  el.innerHTML='';
+  rifles.forEach((r,i)=>{
+    const d=document.createElement('div');
+    d.innerHTML=`<span>${r.name}<br><span class="hint">${r.brand} · ${r.cart} · ${r.grain}gr · ${r.mv}fps · BC ${r.bc} · ${r.adj.toUpperCase()}</span></span>`;
+    const wrap=document.createElement('span');
+    const e=document.createElement('button'); e.className='btn'; e.textContent='Edit'; e.onclick=()=>editRifle(i);
+    const x=document.createElement('button'); x.className='btn ghost'; x.textContent='Del';
+    x.onclick=()=>{ if(confirm('Delete '+r.name+'?')){ rifles.splice(i,1); persist(); renderSaved(); rebuildRifleSel(); } };
+    wrap.appendChild(e); wrap.appendChild(x); d.appendChild(wrap); el.appendChild(d);
+  });
+}
+function renderCartLib(){
+  const el=document.getElementById('cartLib');
+  el.innerHTML=CARTRIDGES().map((c,i)=>`<span class="pill" onclick="loadCartToBuilder(${i})">${c.name}${c.custom?' ★':''} · ${c.grain}gr · ${c.mv}fps · BC ${c.bc}</span>`).join(' ');
+}
+function loadCartToBuilder(i){
+  const c=CARTRIDGES()[i]; if(!c)return;
+  document.getElementById('r_grain').value=c.grain;
+  document.getElementById('r_mv').value=c.mv;
+  document.getElementById('r_bc').value=c.bc;
+  document.getElementById('r_cart').value=i;
+  document.querySelector('.tab[data-tab="rifles"]').click();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+let editIndex=-1;
+function editRifle(i){
+  const r=rifles[i]; editIndex=i;
+  document.getElementById('r_name').value=r.name;
+  document.getElementById('r_brand').value=r.brand;
+  document.getElementById('r_grain').value=r.grain;
+  document.getElementById('r_mv').value=r.mv;
+  document.getElementById('r_bc').value=r.bc;
+  document.getElementById('r_adj').value=r.adj;
+  const idx=CARTRIDGES().findIndex(c=>c.name===r.cart);
+  if(idx>=0) document.getElementById('r_cart').value=idx;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function newRifle(){
+  editIndex=-1;
+  ['r_name','r_brand','r_grain','r_mv','r_bc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('r_cart').value='';
+}
+function saveRifle(){
+  const name=document.getElementById('r_name').value.trim();
+  const mv=parseFloat(document.getElementById('r_mv').value);
+  const bc=parseFloat(document.getElementById('r_bc').value);
+  if(!name||isNaN(mv)||isNaN(bc)){ alert('Need at least a name, muzzle velocity, and BC.'); return; }
+  const r={ name, brand:document.getElementById('r_brand').value.trim()||'—',
+    cart:(CARTRIDGES()[document.getElementById('r_cart').value]||{}).name||'custom',
+    grain:parseFloat(document.getElementById('r_grain').value)||0,
+    mv, bc, adj:document.getElementById('r_adj').value };
+  if(editIndex>=0){ rifles[editIndex]=r; editIndex=-1; } else { rifles.push(r); }
+  persist(); renderSaved(); rebuildRifleSel(); newRifle();
+  alert('Saved ☀️ — select it in Setup to use.');
+}
+
+/* ===================== TABS & TOGGLES ===================== */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['zero','traj','rifles','ammo'].forEach(id=>document.getElementById('tab-'+id).style.display='none');
+    document.getElementById('tab-'+t.dataset.tab).style.display='';
+  };
+});
+function setAdj(v){
+  state.adjUnit=v;
+  document.querySelectorAll('#adjUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  rebuildClicks(); persist();
+}
+function setLin(v){
+  state.linUnit=v;
+  document.querySelectorAll('#linUnit button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  refreshBadges(); updateClickHint(); persist();
+}
+document.querySelectorAll('#distUnit button').forEach(b=>{
+  b.onclick=()=>{ state.distUnit=b.dataset.v;
+    document.querySelectorAll('#distUnit button').forEach(x=>x.classList.toggle('on',x===b));
+    refreshBadges(); persist(); };
+});
+document.querySelectorAll('#linUnit button').forEach(b=>{ b.onclick=()=>setLin(b.dataset.v); });
+document.querySelectorAll('#adjUnit button').forEach(b=>{ b.onclick=()=>setAdj(b.dataset.v); });
+document.getElementById('clickVal').onchange=function(){ state.click=parseFloat(this.value); updateClickHint(); persist(); };
+
+/* ===================== INIT ===================== */
+load();
+rebuildCartSelects();
+rebuildClicks();
+document.querySelectorAll('#distUnit button').forEach(x=>x.classList.toggle('on',x.dataset.v===state.distUnit));
+document.querySelectorAll('#linUnit button').forEach(x=>x.classList.toggle('on',x.dataset.v===state.linUnit));
+document.querySelectorAll('#adjUnit button').forEach(x=>x.classList.toggle('on',x.dataset.v===state.adjUnit));
+refreshBadges();
+renderSaved();
+renderCartLib();
+rebuildRifleSel();
+</script>
+</body>
+</html>

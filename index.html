@@ -86,6 +86,27 @@
   .modal p{font-size:14px;color:var(--txt);margin:0 0 16px}
   .modal .mbtns{display:flex;gap:10px}
   .modal .mbtns button{margin-top:0}
+  /* visualizations */
+  .viz-stack{margin-bottom:12px}
+  .viz-card{background:#1c2016;border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px}
+  .viz-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--accent2);
+    text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px;font-weight:600}
+  .viz-svg{width:100%;height:auto;display:block}
+  .viz-row{display:flex;gap:10px}
+  .viz-half{flex:1;min-width:0}
+  .viz-replay{padding:4px 10px;font-size:11px;background:transparent;border:1px solid var(--accent);
+    color:var(--accent2);border-radius:4px;cursor:pointer;font-weight:600}
+  .viz-replay:active{transform:scale(.98)}
+  .viz-legend{font-size:10px;color:var(--muted);display:flex;gap:14px;margin-top:6px;flex-wrap:wrap}
+  .viz-legend span::before{display:inline-block;margin-right:4px}
+  .viz-legend .los::before{content:'—';color:var(--accent2)}
+  .viz-legend .path::before{content:'—';color:var(--good)}
+  .viz-legend .dot::before{content:'●';color:var(--accent)}
+  .zero-viz{display:flex;gap:12px;align-items:flex-start;margin-top:12px;flex-wrap:wrap}
+  .zero-viz svg{flex:0 0 160px;width:160px;height:160px;background:#1c2016;border:1px solid var(--border);border-radius:6px}
+  .zero-viz-notes{flex:1;min-width:140px;font-size:12px;color:var(--muted)}
+  .zero-viz-notes b{color:var(--accent2)}
+  @media(max-width:420px){.viz-row{flex-direction:column}.zero-viz svg{margin:0 auto}}
 </style>
 </head>
 <body>
@@ -463,8 +484,176 @@ function calcZero(){
       <div class="hint">= ${ang.toFixed(2)} ${angleUnitName()} (${(clicks*activeClick).toFixed(3)} ${angleUnitName()} actual)</div></div>`;
   }
   html+=block(vert,'v',vertRaw)+block(horz,'h',horzRaw);
+  html+=buildZeroVizHtml(vert,horz,vertRaw,horzRaw);
   html+=`<div class="hint">${r.name} · at ${distRaw} ${distLabel()} · ${activeClick} ${angleUnitName()}/click</div></div>`;
   out.innerHTML=html;
+}
+
+/* ===================== VISUALIZATIONS ===================== */
+let trajAnimId=null,lastTrajVizRows=null,lastTrajZeroM=0;
+function stopTrajAnim(){if(trajAnimId){cancelAnimationFrame(trajAnimId);trajAnimId=null;}}
+
+function chartScale(rows,key,pad,w,h,flipY){
+  const maxX=rows[rows.length-1].distM||1;
+  const vals=rows.map(r=>r[key]);
+  let minY=Math.min(...vals,0),maxY=Math.max(...vals,0);
+  if(maxY-minY<1){minY-=5;maxY+=5;}
+  const span=maxY-minY||1;
+  const x=v=>pad+((v/maxX)*(w-2*pad));
+  const y=v=>flipY?pad+((maxY-v)/span)*(h-2*pad):pad+((v-minY)/span)*(h-2*pad);
+  return {x,y,maxX,minY,maxY,span};
+}
+
+function polylinePts(rows,key,sc){
+  return rows.map(r=>sc.x(r.distM)+','+sc.y(r[key])).join(' ');
+}
+
+function drawSparkline(svgId,rows,key,opts){
+  const svg=document.getElementById(svgId); if(!svg||!rows.length) return;
+  const w=400,h=100,pad=28;
+  const sc=chartScale(rows,key,pad,w,h,opts.flipY);
+  const pts=polylinePts(rows,key,sc);
+  const zeroY=sc.y(0).toFixed(1);
+  const unit=opts.unit||'';
+  const last=rows[rows.length-1];
+  svg.innerHTML=`
+    <line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="#5B533F" stroke-width="1" stroke-dasharray="4 3"/>
+    <polyline points="${pts}" fill="none" stroke="${opts.color||'#A4895C'}" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${sc.x(last.distM)}" cy="${sc.y(last[key])}" r="3" fill="${opts.color||'#C9A86A'}"/>
+    <text x="${pad}" y="12" fill="#A4895C" font-size="9">${opts.label||''}</text>
+    <text x="${w-pad}" y="${h-6}" fill="#8a8068" font-size="9" text-anchor="end">${state.distUnit==='yd'?Math.round(last.distM/M_PER_YD):last.distM} ${distLabel()}</text>
+    <text x="${pad}" y="${h-6}" fill="#8a8068" font-size="9">${(opts.fmt?opts.fmt(last[key]):last[key].toFixed(1))}${unit}</text>`;
+}
+
+function buildTrajVizHtml(){
+  return `<div class="viz-stack">
+    <div class="viz-card">
+      <div class="viz-head"><span>Bullet Path (side view)</span><button type="button" class="viz-replay" onclick="replayTrajAnim()">Replay</button></div>
+      <svg id="trajPathSvg" class="viz-svg" viewBox="0 0 400 180" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bullet trajectory path animation"></svg>
+      <div class="viz-legend"><span class="los">Line of sight</span><span class="path">Bullet path</span><span class="dot">Bullet</span></div>
+    </div>
+    <div class="viz-row">
+      <div class="viz-card viz-half">
+        <div class="viz-head">Drop</div>
+        <svg id="trajDropSvg" class="viz-svg" viewBox="0 0 400 100" role="img" aria-label="Drop versus range chart"></svg>
+      </div>
+      <div class="viz-card viz-half">
+        <div class="viz-head">Velocity</div>
+        <svg id="trajVelSvg" class="viz-svg" viewBox="0 0 400 100" role="img" aria-label="Velocity versus range chart"></svg>
+      </div>
+    </div>
+    <div class="viz-card">
+      <div class="viz-head">Wind Drift</div>
+      <svg id="trajWindSvg" class="viz-svg" viewBox="0 0 400 100" role="img" aria-label="Wind drift versus range chart"></svg>
+    </div>
+  </div>`;
+}
+
+function drawTrajPath(rows,zeroM){
+  const svg=document.getElementById('trajPathSvg'); if(!svg||!rows.length) return;
+  const w=400,h=180,pad={l:34,r:14,t:18,b:24};
+  const maxX=rows[rows.length-1].distM||1;
+  const drops=rows.map(r=>r.dropCm);
+  let minD=Math.min(...drops,0),maxD=Math.max(...drops,0);
+  if(maxD-minD<8){minD-=10;maxD+=10;}
+  const spanD=maxD-minD||1;
+  const x=r=>pad.l+((r.distM/maxX)*(w-pad.l-pad.r));
+  const y=d=>pad.t+((d-minD)/spanD)*(h-pad.t-pad.b);
+  const pathPts=rows.map(r=>x(r)+','+y(r.dropCm)).join(' ');
+  const losY=y(0).toFixed(1);
+  const zX=x(rows.find(r=>Math.abs(r.distM-zeroM)<1)||rows[0]).toFixed(1);
+  svg.innerHTML=`
+    <defs><filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <rect x="${pad.l}" y="${pad.t}" width="${w-pad.l-pad.r}" height="${h-pad.t-pad.b}" fill="#252B1F" rx="4"/>
+    <line x1="${pad.l}" y1="${losY}" x2="${w-pad.r}" y2="${losY}" stroke="#C9A86A" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <polyline id="trajPathLine" points="${pathPts}" fill="none" stroke="#7A8B4F" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle id="trajBullet" cx="${x(rows[0])}" cy="${y(rows[0].dropCm)}" r="5" fill="#A4895C" stroke="#E8E4D6" stroke-width="1.5" filter="url(#glow)"/>
+    <circle cx="${zX}" cy="${losY}" r="3" fill="none" stroke="#C9A86A" stroke-width="1"/>
+    <text x="${pad.l}" y="12" fill="#A4895C" font-size="9">DROP (${linLabel()})</text>
+    <text x="${w-pad.r}" y="${h-6}" fill="#8a8068" font-size="9" text-anchor="end">RANGE (${distLabel()})</text>`;
+  lastTrajVizRows=rows;
+  lastTrajZeroM=zeroM;
+  startTrajAnim();
+}
+
+function startTrajAnim(){
+  stopTrajAnim();
+  const bullet=document.getElementById('trajBullet');
+  const rows=lastTrajVizRows;
+  if(!bullet||!rows||rows.length<2) return;
+  const w=400,h=180,pad={l:34,r:14,t:18,b:24};
+  const maxX=rows[rows.length-1].distM||1;
+  const drops=rows.map(r=>r.dropCm);
+  let minD=Math.min(...drops,0),maxD=Math.max(...drops,0);
+  if(maxD-minD<8){minD-=10;maxD+=10;}
+  const spanD=maxD-minD||1;
+  const x=r=>pad.l+((r.distM/maxX)*(w-pad.l-pad.r));
+  const y=d=>pad.t+((d-minD)/spanD)*(h-pad.t-pad.b);
+  const dur=3200;
+  const t0=performance.now();
+  function frame(now){
+    const t=Math.min((now-t0)/dur,1);
+    const dist=t*maxX;
+    let i=0;
+    while(i<rows.length-2&&rows[i+1].distM<dist) i++;
+    const a=rows[i],b=rows[Math.min(i+1,rows.length-1)];
+    const f=b.distM===a.distM?0:(dist-a.distM)/(b.distM-a.distM);
+    const drop=a.dropCm+f*(b.dropCm-a.dropCm);
+    bullet.setAttribute('cx',x({distM:dist}));
+    bullet.setAttribute('cy',y(drop));
+    if(t<1) trajAnimId=requestAnimationFrame(frame);
+    else trajAnimId=null;
+  }
+  trajAnimId=requestAnimationFrame(frame);
+}
+function replayTrajAnim(){startTrajAnim();}
+
+function drawTrajVisuals(rows,zeroM){
+  drawTrajPath(rows,zeroM);
+  drawSparkline('trajDropSvg',rows,'dropCm',{color:'#7A8B4F',label:'DROP',fmt:v=>cmToLin(v).toFixed(1),unit:' '+linLabel(),flipY:false});
+  drawSparkline('trajVelSvg',rows,'vfps',{color:'#6E7F5B',label:'FPS',fmt:v=>Math.round(v).toString(),unit:'',flipY:true});
+  drawSparkline('trajWindSvg',rows,'driftCm',{color:'#C9A86A',label:'DRIFT',fmt:v=>cmToLin(v).toFixed(1),unit:' '+linLabel(),flipY:false});
+}
+
+function buildZeroTargetSvg(vertCm,horzCm){
+  const cx=100,cy=100,R=88;
+  const pxPerCm=4;
+  let ix=cx+(horzCm||0)*pxPerCm;
+  let iy=cy-(vertCm||0)*pxPerCm;
+  const dx=ix-cx,dy=iy-cy,dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist>R-10&&dist>0){const s=(R-10)/dist;ix=cx+dx*s;iy=cy+dy*s;}
+  const hasV=!isNaN(vertCm)&&vertCm!==0;
+  const hasH=!isNaN(horzCm)&&horzCm!==0;
+  let arrows='';
+  if(hasV||hasH){
+    arrows+=`<line x1="${ix.toFixed(1)}" y1="${iy.toFixed(1)}" x2="${cx}" y2="${cy}" stroke="#7A8B4F" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#arr)"/>`;
+  }
+  const rings=[88,66,44,22].map(r=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#5B533F" stroke-width="1"/>`).join('');
+  return `<svg viewBox="0 0 200 200" role="img" aria-label="Target diagram showing point of impact and correction">
+    <defs><marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7A8B4F"/></marker></defs>
+    ${rings}
+    <line x1="${cx}" y1="${cy-R}" x2="${cx}" y2="${cy+R}" stroke="#5B533F" stroke-width="1"/>
+    <line x1="${cx-R}" y1="${cy}" x2="${cx+R}" y2="${cy}" stroke="#5B533F" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="3" fill="#C9A86A"/>
+    ${(hasV||hasH)?`<circle cx="${ix.toFixed(1)}" cy="${iy.toFixed(1)}" r="5" fill="#9E5A3A" stroke="#E8E4D6" stroke-width="1.5"/>`:''}
+    ${arrows}
+  </svg>`;
+}
+
+function buildZeroVizHtml(vertCm,horzCm,vertRaw,horzRaw){
+  const notes=[];
+  if(!isNaN(vertCm)&&vertCm!==0) notes.push(`Impact <b>${vertCm>0?'HIGH':'LOW'}</b> ${Math.abs(vertRaw)} ${linLabel()}`);
+  if(!isNaN(horzCm)&&horzCm!==0) notes.push(`Impact <b>${horzCm>0?'RIGHT':'LEFT'}</b> ${Math.abs(horzRaw)} ${linLabel()}`);
+  if(!notes.length) return '';
+  return `<div class="zero-viz">
+    ${buildZeroTargetSvg(vertCm,horzCm)}
+    <div class="zero-viz-notes">
+      <div style="color:var(--accent2);font-weight:600;margin-bottom:6px">TARGET VIEW</div>
+      <div>Gold = point of aim · Red = impact</div>
+      <div>Green arrow = move group to center</div>
+      ${notes.map(n=>'<div style="margin-top:6px">'+n+'</div>').join('')}
+    </div>
+  </div>`;
 }
 
 /* ===================== TRAJECTORY SOLVER ===================== */
@@ -498,10 +687,11 @@ function solveTrajectory(mv,bc,zeroM,shCm,maxM,stepM,windMph,windFactor){
     const angDrop=activeAdj==='mil'?(-dropCm)/(distM*0.1||1):(-dropCm)/(distM*0.02908||1);
     const lag=s.t-(sf[i]/mv),windFps=windMph*1.4667*windFactor,driftCm=windFps*lag*30.48;
     const angWind=activeAdj==='mil'?(driftCm)/(distM*0.1||1):(driftCm)/(distM*0.02908||1);
-    return {distM,dropCm,angDrop,vfps:s.vfps,angWind};
+    return {distM,dropCm,driftCm,angDrop,vfps:s.vfps,angWind};
   });
 }
 function calcTraj(){
+  stopTrajAnim();
   const r=getRifleById(state.activeRifle);
   const out=document.getElementById('trajResult');
   if(!r){ out.innerHTML='<div class="result danger">Select a rifle profile first (Rifles tab → create one).</div>'; return; }
@@ -513,9 +703,12 @@ function calcTraj(){
   if(isNaN(zeroRaw)||isNaN(maxRaw)||isNaN(stepRaw)||stepRaw<=0){
     out.innerHTML='<div class="result danger">Fill in zero, max range, and a valid step.</div>'; return;
   }
+  const zeroM=distToMeters(zeroRaw),maxM=distToMeters(maxRaw),stepM=distToMeters(stepRaw);
   const windFactor=windFactorFromClock(wclock);
-  const rows=solveTrajectory(r.mv,r.bc,distToMeters(zeroRaw),r.sh,distToMeters(maxRaw),distToMeters(stepRaw),wind,windFactor);
-  let html='<div class="result"><table><tr><th>Range<br>('+distLabel()+')</th><th>Drop<br>('+linLabel()+')</th><th>Elev<br>('+angleUnitName()+')</th><th>Vel<br>(fps)</th><th>Wind<br>('+angleUnitName()+')</th></tr>';
+  const rows=solveTrajectory(r.mv,r.bc,zeroM,r.sh,maxM,stepM,wind,windFactor);
+  const vizStep=Math.max(stepM/8,2);
+  const vizRows=solveTrajectory(r.mv,r.bc,zeroM,r.sh,maxM,vizStep,wind,windFactor);
+  let html='<div class="result">'+buildTrajVizHtml()+'<table><tr><th>Range<br>('+distLabel()+')</th><th>Drop<br>('+linLabel()+')</th><th>Elev<br>('+angleUnitName()+')</th><th>Vel<br>(fps)</th><th>Wind<br>('+angleUnitName()+')</th></tr>';
   rows.forEach(row=>{
     const dispDist=state.distUnit==='yd'?Math.round(row.distM/M_PER_YD):row.distM;
     const isZero=Math.abs(row.dropCm)<0.5,dropDisp=cmToLin(row.dropCm);
@@ -527,6 +720,7 @@ function calcTraj(){
   });
   html+='</table><div class="hint">'+r.name+' · Drop − = below sight line · Elev = dial UP (U) to hit · Wind: '+document.getElementById('t_windclock').selectedOptions[0].text+'.</div></div>';
   out.innerHTML=html;
+  drawTrajVisuals(vizRows,zeroM);
 }
 
 /* ===================== CONFIRM MODAL ===================== */
@@ -684,6 +878,7 @@ function saveRifle(){
 /* ===================== TABS & UNIT TOGGLES ===================== */
 document.querySelectorAll('.tab').forEach(t=>{
   t.onclick=()=>{
+    stopTrajAnim();
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
     ['zero','traj','rifles','ammo'].forEach(id=>document.getElementById('tab-'+id).style.display='none');
